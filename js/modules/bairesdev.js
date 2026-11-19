@@ -1,196 +1,206 @@
 /**
- * Modulo C: Detector y Analizador de Secuencias Numericas
+ * Modulo A: Retos Logicos BairesDev
+ * Funciones para simulacion de problemas de combinatoria, divisibilidad y logistica.
  */
 
 /**
- * Analiza un arreglo numerico y predice el siguiente termino
- * @param {number[]} arr - Lista de al menos 3 numeros
- * @returns {object} Informacion del patron y siguiente valor
+ * Valida que un valor sea un numero entero y que no sea menor al minimo.
+ * Evita calculos con NaN (campo vacio), decimales o negativos.
+ * @param {number} valor - Valor a validar
+ * @param {string} nombre - Nombre del campo (para el mensaje de error)
+ * @param {number} minimo - Valor minimo permitido
  */
-export function analizarSecuencia(arr) {
-  if (!Array.isArray(arr) || arr.length < 3) {
-    throw new Error("Se requieren al menos 3 terminos para detectar un patron.");
+function validarEntero(valor, nombre, minimo) {
+  if (!Number.isInteger(valor)) {
+    throw new Error(`${nombre} debe ser un numero entero (sin decimales ni campos vacios).`);
+  }
+  if (valor < minimo) {
+    throw new Error(`${nombre} debe ser mayor o igual a ${minimo}.`);
+  }
+}
+
+/**
+ * Reto 1: Probabilidad de suma de 2 dados
+ * @param {number} sumaObjetivo - Suma a evaluar (2 a 12)
+ * @returns {{ casosFavorables: number, casosTotales: number, probabilidad: number, porcentaje: string }}
+ */
+export function calcularProbabilidadDados(sumaObjetivo) {
+  validarEntero(sumaObjetivo, "La suma objetivo", 2);
+  if (sumaObjetivo < 2 || sumaObjetivo > 12) {
+    throw new Error("La suma objetivo en dos dados debe estar entre 2 y 12.");
   }
 
-  const n = arr.length;
+  let casosFavorables = 0;
+  const casosTotales = 36; // 6 * 6
 
-  // 1. Verificar Progresion Geometrica: ratio constante (r = arr[i+1] / arr[i])
-  let esGeometrica = true;
-  const r0 = arr[0] !== 0 ? arr[1] / arr[0] : null;
-
-  if (r0 !== null && Number.isFinite(r0)) {
-    for (let i = 1; i < n - 1; i++) {
-      if (arr[i] === 0 || Math.abs((arr[i + 1] / arr[i]) - r0) > 1e-6) {
-        esGeometrica = false;
-        break;
+  for (let d1 = 1; d1 <= 6; d1++) {
+    for (let d2 = 1; d2 <= 6; d2++) {
+      if (d1 + d2 === sumaObjetivo) {
+        casosFavorables++;
       }
     }
-  } else {
-    esGeometrica = false;
   }
 
-  if (esGeometrica) {
-    const siguiente = arr[n - 1] * r0;
-    return {
-      tipo: "GEOMETRICA",
-      descripcion: `Progresion Geometrica con razon constante r = ${r0}`,
-      razon: r0,
-      siguienteTermino: siguiente
-    };
-  }
-
-  // 2. Primeras Diferencias (Delta 1)
-  const d1 = [];
-  for (let i = 0; i < n - 1; i++) {
-    d1.push(arr[i + 1] - arr[i]);
-  }
-
-  // Verificar si d1 es constante (Progresion Aritmetica)
-  const d1Constante = d1.every(val => Math.abs(val - d1[0]) < 1e-6);
-  if (d1Constante) {
-    const siguiente = arr[n - 1] + d1[0];
-    return {
-      tipo: "ARITMETICA",
-      descripcion: `Progresion Aritmetica de 1er orden con diferencia d = ${d1[0]}`,
-      diferencia: d1[0],
-      siguienteTermino: siguiente
-    };
-  }
-
-  // 3. Segundas Diferencias (Delta 2)
-  const d2 = [];
-  for (let i = 0; i < d1.length - 1; i++) {
-    d2.push(d1[i + 1] - d1[i]);
-  }
-
-  // Verificar si d2 es constante (Secuencia Cuadratica de 2do Orden)
-  const d2Constante = d2.length > 0 && d2.every(val => Math.abs(val - d2[0]) < 1e-6);
-  if (d2Constante) {
-    const delta2 = d2[0];
-    const siguienteD1 = d1[d1.length - 1] + delta2;
-    const siguiente = arr[n - 1] + siguienteD1;
-    return {
-      tipo: "CUADRATICA_2DO_ORDEN",
-      descripcion: `Secuencia de 2do Orden (Diferencias crecientes con paso constante +${delta2})`,
-      segundaDiferencia: delta2,
-      siguienteDiferencia: siguienteD1,
-      siguienteTermino: siguiente
-    };
-  }
-
-  // 4. Patron Alternado o Progresion Decreciente Especial
-  // Ejemplo: 100, 93, 84, 73 (-7, -9, -11 => paso -2 en diferencias)
-  // O secuencia dual 6, 3, 12, 9, 36, 35
-  if (d1.length >= 3) {
-    const pasoDiferencias = d1[1] - d1[0];
-    let diferenciasEnProgresion = true;
-    for (let i = 1; i < d1.length - 1; i++) {
-      if (Math.abs((d1[i + 1] - d1[i]) - pasoDiferencias) > 1e-6) {
-        diferenciasEnProgresion = false;
-        break;
-      }
-    }
-    if (diferenciasEnProgresion) {
-      const siguienteD1 = d1[d1.length - 1] + pasoDiferencias;
-      const siguiente = arr[n - 1] + siguienteD1;
-      return {
-        tipo: "DIFERENCIAS_PROGRESIVAS",
-        descripcion: `Diferencias sucesivas en progresion con variacion ${pasoDiferencias}`,
-        siguienteTermino: siguiente
-      };
-    }
-  }
-
-  // 5. Secuencia Dual (operaciones alternadas)
-  // Ejemplo: 6, 3, 12, 9, 36, 35
-  //   pasos pares   (6->3, 12->9, 36->35): -3, -3, -1  (sin regla fija)
-  //   pasos impares (3->12, 9->36)       : x4, x4      (regla fija)
-  // El siguiente paso (35 -> ?) es impar, entonces se aplica x4 => 140
-  const dual = analizarDual(arr);
-  if (dual) {
-    return dual;
-  }
+  const probabilidad = casosFavorables / casosTotales;
+  const porcentaje = (probabilidad * 100).toFixed(2) + "%";
 
   return {
-    tipo: "PATRON_COMPLEJO",
-    descripcion: "Patron no elemental o serie combinada",
-    siguienteTermino: null
+    casosFavorables,
+    casosTotales,
+    probabilidad,
+    porcentaje
   };
 }
 
 /**
- * Revisa si una lista de pasos [desde, hasta] sigue una sola regla:
- * siempre sumar el mismo numero o siempre multiplicar por el mismo numero.
- * @param {number[][]} pasos - Pares [valorAnterior, valorSiguiente]
- * @returns {{ operacion: string, valor: number } | null}
+ * Reto 2: Total de partidos de un torneo round-robin
+ * Formula: C(n, 2) = n * (n - 1) / 2
+ * @param {number} n - Cantidad de equipos (n >= 2)
+ * @returns {number}
  */
-function buscarReglaConstante(pasos) {
-  if (pasos.length < 2) return null;
-
-  // Regla de suma: la diferencia (hasta - desde) es igual en todos los pasos
-  const dif = pasos[0][1] - pasos[0][0];
-  if (pasos.every(([desde, hasta]) => Math.abs((hasta - desde) - dif) < 1e-9)) {
-    return { operacion: "suma", valor: dif };
+export function calcularPartidosTorneo(n) {
+  validarEntero(n, "La cantidad de equipos", 2);
+  if (n < 2) {
+    throw new Error("Se requieren al menos 2 equipos para jugar un torneo.");
   }
-
-  // Regla de multiplicacion: la razon (hasta / desde) es igual en todos los pasos
-  if (pasos.every(([desde]) => desde !== 0)) {
-    const razon = pasos[0][1] / pasos[0][0];
-    if (pasos.every(([desde, hasta]) => Math.abs(hasta / desde - razon) < 1e-9)) {
-      return { operacion: "multiplica", valor: razon };
-    }
-  }
-
-  return null;
+  return (n * (n - 1)) / 2;
 }
 
 /**
- * Detecta secuencias duales: los pasos se alternan entre dos grupos
- * (pasos pares y pasos impares) y al menos el grupo del siguiente paso
- * tiene una regla constante.
- * @param {number[]} arr - Secuencia (minimo 5 terminos)
- * @returns {object | null} Resultado o null si no es dual
+ * Reto 3: Multiplos estrictamente menores a un limite en tiempo O(1)
+ * @param {number} limite - Limite superior (ej: 904)
+ * @param {number} divisor - Divisor entero positivo (ej: 3)
+ * @returns {number}
  */
-function analizarDual(arr) {
-  if (arr.length < 5) return null;
+export function contarMultiplosMenores(limite, divisor) {
+  validarEntero(limite, "El limite", 1);
+  validarEntero(divisor, "El divisor", 1);
+  if (limite <= 1 || divisor <= 0) return 0;
+  // Menores estrictos: [1, limite - 1]
+  return Math.floor((limite - 1) / divisor);
+}
 
-  const pasosPares = [];
-  const pasosImpares = [];
-  for (let j = 0; j < arr.length - 1; j++) {
-    const paso = [arr[j], arr[j + 1]];
-    if (j % 2 === 0) {
-      pasosPares.push(paso);
-    } else {
-      pasosImpares.push(paso);
-    }
+/**
+ * Reto 4: Minimo de viajes segun capacidad (Funcion Techo / Ceil)
+ * @param {number} totalItems - Cantidad total de elementos a trasladar
+ * @param {number} capacidadPorViaje - Capacidad maxima por viaje
+ * @returns {number}
+ */
+export function calcularViajesMinimos(totalItems, capacidadPorViaje) {
+  validarEntero(totalItems, "El total de botellas", 0);
+  validarEntero(capacidadPorViaje, "La capacidad por viaje", 1);
+  if (totalItems <= 0) return 0;
+  if (capacidadPorViaje <= 0) {
+    throw new Error("La capacidad por viaje debe ser mayor a 0.");
+  }
+  return Math.ceil(totalItems / capacidadPorViaje);
+}
+
+/* =============================================================
+   RETOS NUEVOS (tomados del taller de 25 retos)
+   ============================================================= */
+
+/**
+ * Valida que un valor sea un numero real (puede tener decimales)
+ * y que no sea menor al minimo.
+ * @param {number} valor - Valor a validar
+ * @param {string} nombre - Nombre del campo (para el mensaje de error)
+ * @param {number} minimo - Valor minimo permitido
+ */
+function validarNumero(valor, nombre, minimo) {
+  if (!Number.isFinite(valor)) {
+    throw new Error(`${nombre} debe ser un numero valido (el campo no puede estar vacio).`);
+  }
+  if (valor < minimo) {
+    throw new Error(`${nombre} debe ser mayor o igual a ${minimo}.`);
+  }
+}
+
+/**
+ * Reto 5: Conteo de un digito en todos los numeros de 1 a N
+ * Ejemplo: del 1 al 30 el digito 1 aparece 13 veces.
+ * Complejidad: O(N * cantidad de digitos de N)
+ * @param {number} n - Limite superior (1 a 1.000.000)
+ * @param {number} digito - Digito a buscar (0 a 9)
+ * @returns {number} Total de apariciones
+ */
+export function contarDigito(n, digito) {
+  validarEntero(n, "El limite N", 1);
+  validarEntero(digito, "El digito", 0);
+  if (digito > 9) {
+    throw new Error("El digito debe estar entre 0 y 9.");
+  }
+  if (n > 1000000) {
+    throw new Error("El limite N maximo es 1.000.000 para no congelar el navegador.");
   }
 
-  const reglaPares = buscarReglaConstante(pasosPares);
-  const reglaImpares = buscarReglaConstante(pasosImpares);
-
-  // El siguiente paso tiene indice (arr.length - 1): si es par usa la regla de pasos pares
-  const indiceSiguiente = arr.length - 1;
-  const reglaSiguiente = indiceSiguiente % 2 === 0 ? reglaPares : reglaImpares;
-  if (!reglaSiguiente) return null;
-
-  const ultimo = arr[arr.length - 1];
-  const siguienteTermino = reglaSiguiente.operacion === "suma"
-    ? ultimo + reglaSiguiente.valor
-    : ultimo * reglaSiguiente.valor;
-
-  const texto = (regla) => {
-    if (!regla) return "sin regla fija";
-    if (regla.operacion === "suma") {
-      return regla.valor >= 0 ? `+${regla.valor}` : `${regla.valor}`;
+  const textoDigito = String(digito);
+  let contador = 0;
+  for (let i = 1; i <= n; i++) {
+    const textoNumero = String(i);
+    for (const caracter of textoNumero) {
+      if (caracter === textoDigito) {
+        contador++;
+      }
     }
-    return `x${regla.valor}`;
-  };
+  }
+  return contador;
+}
+
+/**
+ * Reto 6: Problema de edades relativas
+ * Pablo tiene hoy k veces la edad de su hermana. ¿En cuantos años
+ * Pablo tendra exactamente el doble de la edad de ella?
+ *   hermana = pablo / k
+ *   pablo + t = 2 * (hermana + t)  =>  t = pablo - 2 * hermana
+ * @param {number} edadPablo - Edad actual de Pablo
+ * @param {number} k - Veces que Pablo es mayor que la hermana (k >= 2)
+ * @returns {{ edadHermana: number, anios: number, edadPabloFutura: number, edadHermanaFutura: number }}
+ */
+export function calcularEdadFutura(edadPablo, k) {
+  validarEntero(edadPablo, "La edad de Pablo", 1);
+  validarNumero(k, "El factor k", 2);
+
+  const edadHermana = edadPablo / k;
+  const anios = edadPablo - 2 * edadHermana;
 
   return {
-    tipo: "DUAL_ALTERNADA",
-    descripcion: `Secuencia dual con operaciones alternadas: pasos pares (${texto(reglaPares)}), pasos impares (${texto(reglaImpares)})`,
-    reglaPares,
-    reglaImpares,
-    siguienteTermino
+    edadHermana,
+    anios,
+    edadPabloFutura: edadPablo + anios,
+    edadHermanaFutura: edadHermana + anios
+  };
+}
+
+/**
+ * Reto 7: Peso del recipiente vacio (proporciones)
+ * lleno   = vacio + contenido
+ * parcial = vacio + fraccion * contenido
+ * Restando: contenido = (lleno - parcial) / (1 - fraccion)
+ * @param {number} pesoLleno - Peso con el recipiente totalmente lleno
+ * @param {number} pesoParcial - Peso con el recipiente lleno hasta la fraccion
+ * @param {number} fraccion - Fraccion llenada (0 <= f < 1), ej: 0.5
+ * @returns {{ vacio: number, contenido: number }}
+ */
+export function calcularPesoRecipiente(pesoLleno, pesoParcial, fraccion) {
+  validarNumero(pesoLleno, "El peso lleno", 0);
+  validarNumero(pesoParcial, "El peso parcial", 0);
+  validarNumero(fraccion, "La fraccion", 0);
+  if (fraccion >= 1) {
+    throw new Error("La fraccion debe ser menor que 1 (si es 1 el recipiente esta lleno y no se puede despejar).");
+  }
+  if (pesoParcial > pesoLleno) {
+    throw new Error("El peso parcial no puede ser mayor que el peso lleno.");
+  }
+
+  const contenido = (pesoLleno - pesoParcial) / (1 - fraccion);
+  const vacio = pesoLleno - contenido;
+  if (vacio < 0) {
+    throw new Error("Los datos no son posibles: el recipiente daria un peso negativo.");
+  }
+
+  return {
+    vacio: Math.round(vacio * 100) / 100,
+    contenido: Math.round(contenido * 100) / 100
   };
 }
