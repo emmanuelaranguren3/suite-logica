@@ -1,5 +1,9 @@
 # Suite Matemática y Algorítmica (Proyecto Integrador)
 
+[![pages-build-deployment](https://github.com/emmanuelaranguren3/suite-logica/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/emmanuelaranguren3/suite-logica/actions/workflows/pages/pages-build-deployment)
+
+🌐 **Demo en vivo:** https://emmanuelaranguren3.github.io/suite-logica/
+
 Aplicación web interactiva que reúne retos de lógica (BairesDev), un solucionador de ecuaciones cuadráticas con gráfica, un detector de secuencias y una suite de pruebas unitarias en el navegador.
 
 **Estudiante:** Emmanuel Aranguren — SENA, Análisis y Desarrollo de Software (ADSO)
